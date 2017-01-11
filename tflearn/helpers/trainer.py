@@ -68,6 +68,7 @@ class Trainer(object):
             achieved before a model weight's are saved to the best_checkpoint_path. This
             allows the user to skip early saves and also set a minimum save point when continuing
             to train a reloaded model. Default: 0.0.
+        lr_multipliers: A dictionary or None. learning rate multipliers to each specified layers.
 
     """
 
@@ -76,7 +77,7 @@ class Trainer(object):
                  tensorboard_verbose=0, checkpoint_path=None, best_checkpoint_path=None,
                  max_checkpoints=None,
                  keep_checkpoint_every_n_hours=10000.0, random_seed=None,
-                 session=None, best_val_accuracy=0.0):
+                 session=None, best_val_accuracy=0.0, lr_multipliers=None):
 
         self.graph = tf.get_default_graph()
         self.summ_writer = None
@@ -520,12 +521,13 @@ class TrainOp(object):
         name: `str`. A name for this class (optional).
         graph: `tf.Graph`. Tensorflow Graph to use for training. Default:
             default tf graph.
+        lr_multipliers: A dictionary or None. learning rate multipliers to each specified layers
 
     """
 
     def __init__(self, loss, optimizer, metric=None, batch_size=64, ema=0.,
                  trainable_vars=None, shuffle=True, step_tensor=None,
-                 validation_monitors=None, validation_batch_size=None, name=None, graph=None):
+                 validation_monitors=None, validation_batch_size=None, name=None, graph=None, lr_multipliers=None):
         self.graph = tf.get_default_graph()
         if graph:
             self.graph = graph
@@ -536,6 +538,7 @@ class TrainOp(object):
         # Ops
         self.loss = loss
         self.optimizer = optimizer
+        self.lr_multipliers = lr_multipliers
         self.metric = metric
         self.metric_summ_name = ""
         if metric is not None:
@@ -658,6 +661,18 @@ class TrainOp(object):
                         tf.clip_by_global_norm(self.grad, clip_gradients)
 
             self.grad = list(zip(self.grad, self.train_vars))
+            
+            # Apply layer-wise learning rate multiplier if any.
+            if self.lr_multipliers:
+              grads_and_vars_mult = []
+              for g, var in self.grad:
+                if var.op.name in self.lr_multipliers:
+                  #print var.name
+                  g *= self.lr_multipliers[var.op.name]
+                grads_and_vars_mult.append((g, var))
+                tf.histogram_summary('variables/' + var.op.name, var)
+                tf.histogram_summary('gradients/' + var.op.name, g)
+            
             self.apply_grad = self.optimizer.apply_gradients(
                     grads_and_vars=self.grad,
                     global_step=self.training_steps,
@@ -843,7 +858,8 @@ class TrainOp(object):
                        batch_size=self.batch_size, ema=self.ema,
                        metric=self.metric,
                        trainable_vars=self.train_vars,
-                       shuffle=self.shuffle)
+                       shuffle=self.shuffle,
+                       lr_multipliers=self.lr_multipliers)
 
     def create_summaries(self, verbose=2):
         """ Create summaries with `verbose` level """

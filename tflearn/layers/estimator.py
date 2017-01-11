@@ -16,7 +16,8 @@ def regression(incoming, placeholder=None, optimizer='adam',
                learning_rate=0.001, dtype=tf.float32, batch_size=64,
                shuffle_batches=True, to_one_hot=False, n_classes=None,
                trainable_vars=None, restore=True, op_name=None, 
-               validation_monitors=None, validation_batch_size=None, name=None):
+               validation_monitors=None, validation_batch_size=None,
+               lr_multipliers = None, name=None):
     """ Regression.
 
     The regression layer is used in TFLearn to apply a regression (linear or
@@ -83,6 +84,7 @@ def regression(incoming, placeholder=None, optimizer='adam',
             shape [None].
         validation_batch_size: `int` or None. Specifies the batch
             size to be used for the validation data feed.
+        lr_multipliers: A dictionary or None. learning rate multipliers to each specified layers
         name: A name for this layer's placeholder scope.
 
     Attributes:
@@ -193,6 +195,7 @@ def regression(incoming, placeholder=None, optimizer='adam',
                     step_tensor=step_tensor,
                     validation_monitors=validation_monitors,
                     validation_batch_size=validation_batch_size,
+                    lr_multipliers=lr_multipliers,
                     name=op_name)
 
     tf.add_to_collection(tf.GraphKeys.TRAIN_OPS, tr_op)
