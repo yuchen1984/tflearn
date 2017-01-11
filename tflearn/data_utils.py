@@ -40,6 +40,7 @@ def to_categorical(y, nb_classes):
         nb_classes = np.max(y)+1
     Y = np.zeros((len(y), nb_classes))
     for i in range(len(y)):
+      if y[i] >= 0 and y[i] < nb_classes: # ignore label out of bound and treat as don't care terms
         Y[i, y[i]] = 1.
     return Y
 
