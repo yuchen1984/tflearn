@@ -107,6 +107,39 @@ class Accuracy(Metric):
 
 accuracy = Accuracy
 
+
+class MultiLabelAccuracy(Metric):
+    """ MultiLabelAccuracy.
+
+    Computes the model accuracy over k multiple labels.  The target predictions are assumed
+    to be logits.  
+
+    Examples:
+        ```python
+        # To be used with TFLearn estimators
+        regression = regression(net, metric=m_acc)
+        ```
+
+    Arguments:
+        name: The name to display.
+
+    """
+
+    def __init__(self, k=1, name=None, binary=False):
+        super(MultiLabelAccuracy, self).__init__(name)
+        self.name = "m_acc" if not name else name   	    # multiclass categorical accuracy
+        self.k = k
+        self.binary=binary
+
+    def build(self, predictions, targets, inputs=None):
+        """ Build multi-label accuracy, comparing predictions and targets. """
+        self.built = True
+        self.tensor = multilabel_accuracy_op(predictions, targets, self.k, self.binary)
+        # Add a special name to that tensor, to be used by monitors
+        self.tensor.m_name = self.name
+
+multilabelaccuracy = MultiLabelAccuracy
+
 class Top_k(Metric):
     """ Top-k.
 
@@ -232,7 +265,46 @@ prediction_counts = Prediction_Counts
 # ----------
 # Metric ops
 # ----------
+def multilabel_accuracy_op(predictions, targets, k, binary):
+    """ multilabel_accuracy_op.
 
+    An op that calculates mean accuracy over multiple labels,
+    assuming predictions and targets are both contenation of
+    multiple one-hot encoded vectors, each represent a category.
+
+    Arguments:
+        predictions: `Tensor`.
+        targets: `Tensor`.
+
+    Returns:
+        `Float`. The mean accuracy.
+
+    """
+    if not isinstance(targets, tf.Tensor):
+        raise ValueError("mean_accuracy 'input' argument only accepts type "
+                         "Tensor, '" + str(type(input)) + "' given.")
+
+    with tf.name_scope('MultiLabelAccuracy'):
+      if binary:
+        predictions_binary = tf.cast(tf.greater(predictions, 0.5), tf.float32)
+        targets_binary = tf.cast(tf.greater(targets, 0.5), tf.float32)
+        correct_pred = tf.equal(predictions_binary, targets_binary)
+        acc = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+      else:   
+        top_pred_values, top_pred_indices = tf.nn.top_k(predictions, k)
+        # indices will be [[0, 1], [2, 1]], values will be [[6., 2.], [5., 4.]]
+        # We need to create full indices like [[0, 0], [0, 1], [1, 2], [1, 1]]
+        index_range = tf.expand_dims(tf.range(0, tf.shape(top_pred_indices)[0]), 1)
+        index_range_repeated = tf.tile(index_range, [1, k])  # will be [[0, 0], [1, 1]]
+        top_pred_indices_full = tf.concat(2, [tf.expand_dims(index_range_repeated, 2), tf.expand_dims(top_pred_indices, 2)]) 
+        top_pred_indices_full = tf.reshape(top_pred_indices_full, [-1, 2])
+
+        predictions_reg = tf.sparse_to_dense(top_pred_indices_full, tf.shape(predictions), sparse_values=1.0, default_value=0.0, validate_indices=False)
+        prod = tf.mul(predictions_reg, targets)
+        prod = tf.scalar_mul(1.0 / float(k), prod)
+        correct_pred = tf.reduce_sum(prod, 1)
+        acc = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+    return acc
 
 def accuracy_op(predictions, targets):
     """ accuracy_op.
