@@ -71,6 +71,79 @@ def categorical_crossentropy(y_pred, y_true):
                                reduction_indices=len(y_pred.get_shape())-1)
         return tf.reduce_mean(cross_entropy)
 
+def full_categorical_crossentropy(y_pred, y_true):
+    """ Full Categorical Crossentropy.
+
+    Computes cross entropy between y_pred (logits) and y_true (labels).
+
+    Measures the probability error in discrete classification tasks in which
+    the classes are not mutually exclusive.
+
+    Arguments:
+        y_pred: `Tensor`. Predicted values.
+        y_true: `Tensor` . Targets (labels), a probability distribution.
+
+    """
+    with tf.name_scope("FullCrossentropy"):
+        y_pred /= tf.reduce_sum(y_pred,
+                                reduction_indices=len(y_pred.get_shape())-1,
+                                keep_dims=True)
+        # manual computation of crossentropy
+        y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
+                                  tf.cast(1.-_EPSILON, dtype=_FLOATX))
+        cross_entropy = - tf.reduce_sum(y_true * tf.log(y_pred)
+                                        + (1.0 - y_true) * tf.log(1.0 - y_pred),
+                               reduction_indices=len(y_pred.get_shape())-1)
+        return tf.reduce_mean(cross_entropy)
+
+
+def extended_categorical_crossentropy(y_pred, y_true):
+    """ Categorical Crossentropy.
+
+    Computes cross entropy between y_pred (logits) and y_true (labels).
+
+    Measures the probability error in discrete classification tasks in which
+    the classes are mutually exclusive (each entry is in exactly one class).
+    For example, each CIFAR-10 image is labeled with one and only one label:
+    an image can be a dog or a truck, but not both.
+
+    `y_pred` and `y_true` must have the same shape `[batch_size, num_classes]`
+    and the same dtype (either `float32` or `float64`). It is also required
+    that `y_true` (labels) are binary arrays (For example, class 2 out of a
+    total of 5 different classes, will be define as [0., 1., 0., 0., 0.])
+
+    Arguments:
+        y_pred: `Tensor`. Predicted values.
+        y_true: `Tensor` . Targets (labels), a probability distribution.
+
+    """
+    with tf.name_scope("ExtendedCrossentropy"):
+        y_pred /= tf.reduce_sum(y_pred,
+                                reduction_indices=len(y_pred.get_shape())-1,
+                                keep_dims=True)
+        # manual computation of crossentropy
+        y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
+                                  tf.cast(1.-_EPSILON, dtype=_FLOATX))
+        if len(y_pred.get_shape()) > 1:
+          class_num = y_pred.get_shape()[len(y_pred.get_shape()) - 1]        
+          y_pred_leftsub = y_pred[:,1:]                          
+          y_true_leftsub = y_true[:,1:]                          
+          y_pred_rightsub = y_pred[:,:(class_num - 1)]                          
+          y_true_righttsub = y_true[:,:(class_num - 1)]                          
+        else:
+          y_pred_leftsub = y_pred[1:]                          
+          y_true_leftsub = y_true[1:]                          
+          y_pred_rightsub = y_pred[:(class_num - 1)]                          
+          y_true_righttsub = y_true[:(class_num - 1)]                          
+        
+        cross_entropy = - tf.reduce_sum(y_true * tf.log(y_pred),
+                               reduction_indices=len(y_pred.get_shape())-1)
+        cross_entropy_left = - (0.33 * tf.reduce_sum(y_true_righttsub * tf.log(y_pred_leftsub),
+                               reduction_indices=len(y_pred.get_shape())-1))
+        cross_entropy_right = - (0.33 * tf.reduce_sum(y_true_leftsub * tf.log(y_pred_rightsub),
+                               reduction_indices=len(y_pred.get_shape())-1))
+        cross_entropy_all = tf.concat(0, [cross_entropy, cross_entropy_left, cross_entropy_right])
+        return tf.reduce_mean(cross_entropy_all)        
 
 def binary_crossentropy(y_pred, y_true):
     """ Binary Crossentropy.
@@ -114,6 +187,18 @@ def mean_square(y_pred, y_true):
     with tf.name_scope("MeanSquare"):
         return tf.reduce_mean(tf.square(y_pred - y_true))
 
+def filtered_mean_square(y_pred, y_true):
+    """ Mean Square Loss on non-zero elements.
+
+    Arguments:
+        y_pred: `Tensor` of `float` type. Predicted values.
+        y_true: `Tensor` of `float` type. Targets (labels).
+
+    """
+    with tf.name_scope("FilteredMeanSquare"):
+        masked = tf.to_float(tf.abs(y_true) > _EPSILON)
+        return tf.reduce_mean(tf.square((y_pred - y_true) * masked))
+        
 
 def hinge_loss(y_pred, y_true):
     """ Hinge Loss.
