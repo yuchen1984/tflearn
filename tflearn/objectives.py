@@ -96,7 +96,32 @@ def full_categorical_crossentropy(y_pred, y_true):
                                reduction_indices=len(y_pred.get_shape())-1)
         return tf.reduce_mean(cross_entropy)
 
+def weighted_full_categorical_crossentropy(y_pred, y_true, w_p = 1.0, w_n = 1.0):
+    """ Weight Full Categorical Crossentropy.
 
+    Computes weighted cross entropy between y_pred (logits) and y_true (labels).
+
+    Measures the probability error in discrete classification tasks in which
+    the classes are not mutually exclusive. It applies different weights over
+    the positive sample loss and negative sample loss.
+
+    Arguments:
+        y_pred: `Tensor`. Predicted values.
+        y_true: `Tensor` . Targets (labels), a probability distribution.
+
+    """
+    with tf.name_scope("WeightedFullCrossentropy"):
+        y_pred /= tf.reduce_sum(y_pred,
+                                reduction_indices=len(y_pred.get_shape())-1,
+                                keep_dims=True)
+        # manual computation of crossentropy
+        y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
+                                  tf.cast(1.-_EPSILON, dtype=_FLOATX))
+        cross_entropy = - tf.reduce_sum(y_true * tf.log(y_pred) * w_p
+                                        + (1.0 - y_true) * tf.log(1.0 - y_pred) * w_n,
+                                        reduction_indices=len(y_pred.get_shape())-1)
+        return tf.reduce_mean(cross_entropy)
+        
 def extended_categorical_crossentropy(y_pred, y_true):
     """ Categorical Crossentropy.
 
