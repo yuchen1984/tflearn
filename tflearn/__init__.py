@@ -35,9 +35,9 @@ from .activations import linear, tanh, sigmoid, softmax, softplus, softsign,\
     relu, relu6, leaky_relu, prelu, elu
 from .variables import variable, get_all_trainable_variable, \
     get_all_variables, get_layer_variables_by_name
-from .objectives import categorical_crossentropy, binary_crossentropy, \
+from .objectives import categorical_crossentropy, full_categorical_crossentropy, weighted_full_categorical_crossentropy, extended_categorical_crossentropy, binary_crossentropy, \
     softmax_categorical_crossentropy, hinge_loss, mean_square
-from .metrics import Top_k, Accuracy, MultiLabelAccuracy, R2, top_k_op, accuracy_op, multilabel_accuracy_op, r2_op, Prediction_Counts
+from .metrics import Top_k, Accuracy, MultiLabelAccuracy, R2, top_k_op, accuracy_op, multilabel_accuracy_op, r2_op, weighted_r2_op, Prediction_Counts
 
 # Direct layers inclusion
 from . import layers
