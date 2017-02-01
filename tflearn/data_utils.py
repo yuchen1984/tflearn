@@ -823,7 +823,7 @@ class ImagePreloader(Preloader):
         if shared_image_dict and (path in shared_image_dict):
             img = shared_image_dict[path]
         else:      
-            img = load_image(path, shared_image_dict)
+            img = load_image(path)
             width, height = img.size
             if width != image_shape[0] or height != image_shape[1]:
                 img = resize_image(img, image_shape[0], image_shape[1])
