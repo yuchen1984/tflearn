@@ -530,18 +530,9 @@ def image_preloader(target_path, image_shape, mode='file', normalize=True,
 
     return X, Y
 
-def load_image(in_image, shared_image_dict = None):
-    """ Load an image, returns PIL.Image.
-        An optional shared image dictionary is supported to avoid memory leakage caused by repetitive image opening. 
-    """
-    if shared_image_dict:
-      if in_image in shared_image_dict:
-        img = shared_image_dict[in_image]
-      else:      
-        img = Image.open(in_image)
-        shared_image_dict[in_image] = img
-    else:
-      img = Image.open(in_image)
+def load_image(in_image):
+    """ Load an image, returns PIL.Image."""
+    img = Image.open(in_image)
     return img
 
 
@@ -827,16 +818,22 @@ class ImagePreloader(Preloader):
         fn = lambda x: self.preload(x, image_shape, normalize, grayscale, shared_image_dict)
         super(ImagePreloader, self).__init__(array, fn)
 
+    # NB: An optional shared image dictionary is supported to avoid memory leakage caused by repetitive image opening. 
     def preload(self, path, image_shape, normalize=True, grayscale=False, shared_image_dict = None):
-        img = load_image(path, shared_image_dict)
-        width, height = img.size
-        if width != image_shape[0] or height != image_shape[1]:
-            img = resize_image(img, image_shape[0], image_shape[1])
-        if grayscale:
-            img = convert_color(img, 'L')
-        img = pil_to_nparray(img)
-        if normalize:
-            img /= 255.
+        if shared_image_dict and (path in shared_image_dict):
+            img = shared_image_dict[path]
+        else:      
+            img = load_image(path, shared_image_dict)
+            width, height = img.size
+            if width != image_shape[0] or height != image_shape[1]:
+                img = resize_image(img, image_shape[0], image_shape[1])
+            if grayscale:
+                img = convert_color(img, 'L')
+            img = pil_to_nparray(img)
+            if normalize:
+                img /= 255.
+            if shared_image_dict:
+                shared_image_dict[path] = img
         return img
 
 
