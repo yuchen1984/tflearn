@@ -530,10 +530,18 @@ def image_preloader(target_path, image_shape, mode='file', normalize=True,
 
     return X, Y
 
-
-def load_image(in_image):
-    """ Load an image, returns PIL.Image. """
-    img = Image.open(in_image)
+def load_image(in_image, shared_image_dict = None):
+    """ Load an image, returns PIL.Image.
+        An optional shared image dictionary is supported to avoid memory leakage caused by repetitive image opening. 
+    """
+    if shared_image_dict:
+      if in_image in shared_image_dict:
+        img = shared_image_dict[in_image]
+      else:      
+        img = Image.open(in_image)
+        shared_image_dict[in_image] = img
+    else:
+      img = Image.open(in_image)
     return img
 
 
@@ -815,12 +823,12 @@ class Preloader(object):
 
 
 class ImagePreloader(Preloader):
-    def __init__(self, array, image_shape, normalize=True, grayscale=False):
-        fn = lambda x: self.preload(x, image_shape, normalize, grayscale)
+    def __init__(self, array, image_shape, normalize=True, grayscale=False, shared_image_dict = None):
+        fn = lambda x: self.preload(x, image_shape, normalize, grayscale, shared_image_dict)
         super(ImagePreloader, self).__init__(array, fn)
 
-    def preload(self, path, image_shape, normalize=True, grayscale=False):
-        img = load_image(path)
+    def preload(self, path, image_shape, normalize=True, grayscale=False, shared_image_dict = None):
+        img = load_image(path, shared_image_dict)
         width, height = img.size
         if width != image_shape[0] or height != image_shape[1]:
             img = resize_image(img, image_shape[0], image_shape[1])
