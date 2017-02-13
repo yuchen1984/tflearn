@@ -434,7 +434,8 @@ def get_img_channel(image_path):
 
 def image_preloader(target_path, image_shape, mode='file', normalize=True,
                     grayscale=False, categorical_labels=True,
-                    files_extension=None, filter_channel=False):
+                    files_extension=None, filter_channel=False,
+                    shared_image_dict = None):
     """ Image PreLoader.
 
     Create a python array (`Preloader`) that loads images on the fly (from
@@ -525,7 +526,7 @@ def image_preloader(target_path, image_shape, mode='file', normalize=True,
                     labels.append(int(l[1]))
 
     n_classes = np.max(labels) + 1
-    X = ImagePreloader(images, image_shape, normalize, grayscale)
+    X = ImagePreloader(images, image_shape, normalize, grayscale, shared_image_dict)
     Y = LabelPreloader(labels, n_classes, categorical_labels)
 
     return X, Y
