@@ -5,7 +5,6 @@ from tensorflow.core.framework import summary_pb2
 
 from .utils import format_scope_name
 
-
 # Fix for TF 0.12
 try:
     tf012 = True
@@ -197,7 +196,7 @@ def get_value_from_summary_string(tag, summary_str):
     summ.ParseFromString(summary_str)
 
     for row in summ.value:
-        if row.tag == tag:
+        if row.tag.endswith(tag):
             return float(row.simple_value)
 
     raise ValueError("Tag: " + tag + " cannot be found in summaries list.")
