@@ -666,12 +666,13 @@ class TrainOp(object):
             if self.lr_multipliers:
               grads_and_vars_mult = []
               for g, var in self.grad:
-                if var.op.name in self.lr_multipliers:
+                if var.op.name in self.lr_multipliers and g is not None:
                   #print var.name
                   g *= self.lr_multipliers[var.op.name]
                 grads_and_vars_mult.append((g, var))
-                tf.histogram_summary('variables/' + var.op.name, var)
-                tf.histogram_summary('gradients/' + var.op.name, g)
+                if var and g is not None:
+                  tf.histogram_summary('variables/' + var.op.name, var)
+                  tf.histogram_summary('gradients/' + var.op.name, g)
             
             self.apply_grad = self.optimizer.apply_gradients(
                     grads_and_vars=self.grad,
