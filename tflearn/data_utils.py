@@ -815,12 +815,12 @@ class Preloader(object):
 
 
 class ImagePreloader(Preloader):
-    def __init__(self, array, image_shape, normalize=True, grayscale=False, shared_image_dict = None):
-        fn = lambda x: self.preload(x, image_shape, normalize, grayscale, shared_image_dict)
+    def __init__(self, array, image_shape, normalize=True, grayscale=False, shared_image_dict = None, alpha=False):
+        fn = lambda x: self.preload(x, image_shape, normalize, grayscale, shared_image_dict, alpha)
         super(ImagePreloader, self).__init__(array, fn)
 
     # NB: An optional shared image dictionary is supported to avoid memory leakage caused by repetitive image opening. 
-    def preload(self, path, image_shape, normalize=True, grayscale=False, shared_image_dict = None):
+    def preload(self, path, image_shape, normalize=True, grayscale=False, shared_image_dict = None, alpha=False):
         if shared_image_dict and (path in shared_image_dict):
             img = shared_image_dict[path]
         else:      
@@ -830,7 +830,11 @@ class ImagePreloader(Preloader):
                 img = resize_image(img, image_shape[0], image_shape[1])
             if grayscale:
                 img = convert_color(img, 'L')
+            if alpha:
+                img = img.split()[3]
             img = pil_to_nparray(img)
+            if alpha:
+                img = img.reshape(img.shape[0], img.shape[1], 1)
             if normalize:
                 img /= 255.
             if shared_image_dict:
