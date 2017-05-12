@@ -286,8 +286,9 @@ def multilabel_accuracy_op(predictions, targets, k, binary):
 
     with tf.name_scope('MultiLabelAccuracy'):
       if binary:
-        predictions_binary = tf.cast(tf.greater(predictions, 0.5), tf.float32)
-        targets_binary = tf.cast(tf.greater(targets, 0.5), tf.float32)
+        # Measure average binary accuracy over first k dimensions
+        predictions_binary = tf.cast(tf.greater(predictions[:,0:k], 0.5), tf.float32)
+        targets_binary = tf.cast(tf.greater(targets[:,0:k], 0.5), tf.float32)
         correct_pred = tf.equal(predictions_binary, targets_binary)
         acc = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
       else:   
