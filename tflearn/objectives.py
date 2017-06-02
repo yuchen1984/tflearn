@@ -85,9 +85,6 @@ def full_categorical_crossentropy(y_pred, y_true):
 
     """
     with tf.name_scope("FullCrossentropy"):
-        y_pred /= tf.reduce_sum(y_pred,
-                                reduction_indices=len(y_pred.get_shape())-1,
-                                keep_dims=True)
         # manual computation of crossentropy
         y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
                                   tf.cast(1.-_EPSILON, dtype=_FLOATX))
@@ -111,9 +108,6 @@ def weighted_full_categorical_crossentropy(y_pred, y_true, w_p = 1.0, w_n = 1.0)
 
     """
     with tf.name_scope("WeightedFullCrossentropy"):
-        y_pred /= tf.reduce_sum(y_pred,
-                                reduction_indices=len(y_pred.get_shape())-1,
-                                keep_dims=True)
         # manual computation of crossentropy
         y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
                                   tf.cast(1.-_EPSILON, dtype=_FLOATX))
@@ -138,9 +132,6 @@ def super_weighted_full_categorical_crossentropy(y_pred, y_true, element_weight,
     """
     with tf.name_scope("SuperWeightedFullCrossentropy"):
         element_weight_broadcast = tf.tile(element_weight, tf.pack([tf.shape(y_pred)[0], 1]))
-        y_pred /= tf.reduce_sum(y_pred,
-                                reduction_indices=len(y_pred.get_shape())-1,
-                                keep_dims=True)
         # manual computation of crossentropy
         y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
                                   tf.cast(1.-_EPSILON, dtype=_FLOATX))
