@@ -88,8 +88,10 @@ def full_categorical_crossentropy(y_pred, y_true):
         # manual computation of crossentropy
         y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
                                   tf.cast(1.-_EPSILON, dtype=_FLOATX))
+        y_pred_neg = tf.clip_by_value(1.0 - y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
+                                  tf.cast(1.-_EPSILON, dtype=_FLOATX))
         cross_entropy = - tf.reduce_sum(y_true * tf.log(y_pred)
-                                        + (1.0 - y_true) * tf.log(1.0 - y_pred),
+                                        + (1.0 - y_true) * tf.log(y_pred_neg),
                                reduction_indices=len(y_pred.get_shape())-1)
         return tf.reduce_mean(cross_entropy)
 
@@ -111,8 +113,10 @@ def weighted_full_categorical_crossentropy(y_pred, y_true, w_p = 1.0, w_n = 1.0)
         # manual computation of crossentropy
         y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
                                   tf.cast(1.-_EPSILON, dtype=_FLOATX))
+        y_pred_neg = tf.clip_by_value(1.0 - y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
+                                  tf.cast(1.-_EPSILON, dtype=_FLOATX))
         cross_entropy = - tf.reduce_sum(y_true * tf.log(y_pred) * w_p
-                                        + (1.0 - y_true) * tf.log(1.0 - y_pred) * w_n,
+                                        + (1.0 - y_true) * tf.log(y_pred_neg) * w_n,
                                         reduction_indices=len(y_pred.get_shape())-1)
         return tf.reduce_mean(cross_entropy)
 
@@ -135,8 +139,10 @@ def super_weighted_full_categorical_crossentropy(y_pred, y_true, element_weight,
         # manual computation of crossentropy
         y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
                                   tf.cast(1.-_EPSILON, dtype=_FLOATX))
+        y_pred_neg = tf.clip_by_value(1.0 - y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
+                                  tf.cast(1.-_EPSILON, dtype=_FLOATX))
         cross_entropy = - tf.reduce_sum((y_true * tf.log(y_pred) * w_p
-                                        + (1.0 - y_true) * tf.log(1.0 - y_pred) * w_n) * element_weight_broadcast,
+                                        + (1.0 - y_true) * tf.log(y_pred_neg) * w_n) * element_weight_broadcast,
                                         reduction_indices=len(y_pred.get_shape())-1)
         return tf.reduce_mean(cross_entropy)
         
