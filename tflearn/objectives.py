@@ -107,6 +107,8 @@ def weighted_full_categorical_crossentropy(y_pred, y_true, w_p = 1.0, w_n = 1.0)
     Arguments:
         y_pred: `Tensor`. Predicted values.
         y_true: `Tensor` . Targets (labels), a probability distribution.
+        w_p: a float number. Common weighting factor to all positive samples
+        w_n: a float number. Common weighting factor to all negative samples
 
     """
     with tf.name_scope("WeightedFullCrossentropy"):
@@ -120,6 +122,32 @@ def weighted_full_categorical_crossentropy(y_pred, y_true, w_p = 1.0, w_n = 1.0)
                                         reduction_indices=len(y_pred.get_shape())-1)
         return tf.reduce_mean(cross_entropy)
 
+def columnwise_weighted_full_categorical_crossentropy(y_pred, y_true, column_weights):
+    """ Super Weight Full Categorical Crossentropy.
+
+    Computes column-wised weighted cross entropy between y_pred (logits) and y_true (labels).
+
+    Measures the probability error in discrete classification tasks in which
+    the classes are not mutually exclusive. It applies different weights over
+    the positive sample loss and negative sample loss.
+
+    Arguments:
+        y_pred: `Tensor`. Predicted values.
+        y_true: `Tensor` . Targets (labels), a probability distribution.
+        column_weights: an nparray of float number. Column-wise weights to each attribute dimension, applied on negative samples.
+
+    """
+    with tf.name_scope("SuperWeightedFullCrossentropy"):
+        column_weights_broadcast = tf.tile(column_weights, tf.pack([tf.shape(y_pred)[0], 1]))
+        y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
+                                  tf.cast(1.-_EPSILON, dtype=_FLOATX))
+        y_pred_neg = tf.clip_by_value(1.0 - y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
+                                  tf.cast(1.-_EPSILON, dtype=_FLOATX))
+        cross_entropy = - tf.reduce_sum((y_true * tf.log(y_pred)
+                                        + (1.0 - y_true) * tf.log(y_pred_neg) * column_weights_broadcast),
+                                        reduction_indices=len(y_pred.get_shape())-1)
+        return tf.reduce_mean(cross_entropy)
+        
 def super_weighted_full_categorical_crossentropy(y_pred, y_true, element_weight, w_p = 1.0, w_n = 1.0):
     """ Super Weight Full Categorical Crossentropy.
 
@@ -132,6 +160,9 @@ def super_weighted_full_categorical_crossentropy(y_pred, y_true, element_weight,
     Arguments:
         y_pred: `Tensor`. Predicted values.
         y_true: `Tensor` . Targets (labels), a probability distribution.
+        element_weight: an nparray of float number. Column-wise weights to each attribute dimension.
+        w_p: a float number. Common weighting factor to all positive samples
+        w_n: a float number. Common weighting factor to all negative samples
 
     """
     with tf.name_scope("SuperWeightedFullCrossentropy"):
