@@ -820,14 +820,14 @@ class ImagePreloader(Preloader):
         super(ImagePreloader, self).__init__(array, fn)
 
     # NB: An optional shared image dictionary is supported to avoid memory leakage caused by repetitive image opening. 
-    def preload(self, path, image_shape, normalize=True, grayscale=False, shared_image_dict = None, alpha=False):
+    def preload(self, path, image_shape, normalize=True, grayscale=False, shared_image_dict = None, alpha=False, label_image=False):
         if shared_image_dict and (path in shared_image_dict):
             img = shared_image_dict[path]
         else:      
             img = load_image(path)
             width, height = img.size
             if width != image_shape[0] or height != image_shape[1]:
-                img = resize_image(img, image_shape[0], image_shape[1])
+                img = resize_image(img, image_shape[0], image_shape[1], resize_mode=(Image.NEAREST if label_image else Image.ANTIALIAS))
             if grayscale:
                 img = convert_color(img, 'L')
             if alpha:
