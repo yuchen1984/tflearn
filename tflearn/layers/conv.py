@@ -16,7 +16,7 @@ from .. import utils
 def conv_2d(incoming, nb_filter, filter_size, strides=1, padding='same',
             activation='linear', bias=True, weights_init='uniform_scaling',
             bias_init='zeros', regularizer=None, weight_decay=0.001,
-            trainable=True, restore=True, reuse=False, scope=None,
+            trainable=True, restore=True, reuse=False, scope=None, dilation=1,
             name="Conv2D"):
     """ Convolution 2D.
 
@@ -53,6 +53,7 @@ def conv_2d(incoming, nb_filter, filter_size, strides=1, padding='same',
         scope: `str`. Define this layer scope (optional). A scope can be
             used to share variables between layers. Note that scope will
             override name.
+        dilationi: `int`. If greater than one, applying atrous_conv layers.
         name: A name for this layer (optional). Default: 'Conv2D'.
 
     Attributes:
@@ -101,7 +102,10 @@ def conv_2d(incoming, nb_filter, filter_size, strides=1, padding='same',
             # Track per layer variables
             tf.add_to_collection(tf.GraphKeys.LAYER_VARIABLES + '/' + name, b)
 
-        inference = tf.nn.conv2d(incoming, W, strides, padding)
+        if dilation == 1:
+            inference = tf.nn.conv2d(incoming, W, strides, padding)
+        else:
+            inference = tf.nn.atrous_conv2d(incoming, W, dilation, padding)
         if b: inference = tf.nn.bias_add(inference, b)
 
         if activation:
