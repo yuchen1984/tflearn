@@ -337,7 +337,8 @@ def accuracy_op(predictions, targets):
                          "Tensor, '" + str(type(input)) + "' given.")
 
     with tf.name_scope('Accuracy'):
-        correct_pred = tf.equal(tf.argmax(predictions, 1), tf.argmax(targets, 1))
+        r = tf.rank(predictions)
+        correct_pred = tf.equal(tf.argmax(predictions, r - 1), tf.argmax(targets, r - 1))
         acc = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
     return acc
 
