@@ -109,7 +109,7 @@ def conv_2d(incoming, nb_filter, filter_size, strides=1, padding='same',
             
         if b: inference = tf.nn.bias_add(inference, b)
         # Reshape tensor so its shape is correct.
-        inference.set_shape([None] + input_shape[1:3])
+        inference.set_shape([None] + input_shape[1:3] + [nb_filter])
         
         if activation:
             if isinstance(activation, str):
