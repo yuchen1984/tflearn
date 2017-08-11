@@ -15,6 +15,7 @@ def regression(incoming, placeholder=None, optimizer='adam',
                loss='categorical_crossentropy', metric='default',
                learning_rate=0.001, dtype=tf.float32, batch_size=64,
                shuffle_batches=True, to_one_hot=False, n_classes=None,
+               output_shape=None,
                trainable_vars=None, restore=True, op_name=None, 
                validation_monitors=None, validation_batch_size=None,
                lr_multipliers = None, name=None):
@@ -97,7 +98,7 @@ def regression(incoming, placeholder=None, optimizer='adam',
     if placeholder is None:
         pscope = "TargetsData" if not name else name
         with tf.name_scope(pscope):
-            p_shape = [None] if to_one_hot else input_shape
+            p_shape = output_shape if output_shape != None else ([None] if to_one_hot else input_shape)
             placeholder = tf.placeholder(shape=p_shape, dtype=dtype, name="Y")
 
     if placeholder not in tf.get_collection(tf.GraphKeys.TARGETS):
