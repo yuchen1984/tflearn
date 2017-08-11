@@ -105,10 +105,10 @@ class Accuracy(Metric):
                self.one_hot_classes > 0:
               # Convert the target labels into one-hot vector
               targets = tf.cast(targets, tf.uint8)
-              r = tf.rank(targets)
-              targets_last_dimension = targets.get_shape().as_list()[r - 1]
+              rk = tf.rank(targets)
+              targets_last_dimension = targets.get_shape()[rk - 1]
               if targets_last_dimension == 1:
-                targets = tf.cast(targets, squeeze_dims=[r - 1])
+                targets = tf.cast(targets, squeeze_dims=[rk - 1])
               targets = tf.one_hot(targets, self.one_hot_classes)
             
             self.name = self.name or "acc"   	    # traditional categorical accuracy
