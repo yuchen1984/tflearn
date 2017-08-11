@@ -143,18 +143,21 @@ def regression(incoming, placeholder=None, optimizer='adam',
     if len(input_shape) == 1 and metric == 'default':
         metric = None
     if metric is not None:
+        placeholder_resized = placeholder
+        if output_shape != None:
+            placeholder_resized = tf.image.resize_nearest_neighbor(placeholder, input_shape)
         # Default metric is accuracy
         if metric == 'default': metric = 'accuracy'
         if isinstance(metric, str):
             metric = metrics.get(metric)()
-            metric.build(incoming, placeholder, inputs)
+            metric.build(incoming, placeholder_resized, inputs)
             metric = metric.get_tensor()
         elif isinstance(metric, metrics.Metric):
-            metric.build(incoming, placeholder, inputs)
+            metric.build(incoming, placeholder_resized, inputs)
             metric = metric.get_tensor()
         elif hasattr(metric, '__call__'):
             try:
-                metric = metric(incoming, placeholder, inputs)
+                metric = metric(incoming, placeholder_resized, inputs)
             except Exception as e:
                 print(e.message)
                 print('Reminder: Custom metric function arguments must be '
