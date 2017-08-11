@@ -89,8 +89,9 @@ class Accuracy(Metric):
 
     """
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, one_hot_classes=None):
         super(Accuracy, self).__init__(name)
+        self.one_hot_classes=one_hot_classes
 
     def build(self, predictions, targets, inputs=None):
         """ Build accuracy, comparing predictions and targets. """
@@ -100,6 +101,16 @@ class Accuracy(Metric):
             self.name = self.name or "binary_acc"   # clearly indicate binary accuracy being used
             self.tensor = binary_accuracy_op(predictions, targets)
         else:
+            if self.one_hot_classes != None and isinstance(self.one_hot_classes, int) and \
+               self.one_hot_classes > 0:
+              # Convert the target labels into one-hot vector
+              targets = tf.cast(targets, tf.uint8)
+              r = tf.rank(targets)
+              targets_last_dimension = targets.get_shape().as_list()[r - 1]
+              if targets_last_dimension == 1:
+                targets = tf.cast(targets, squeeze_dims=[r - 1])
+              targets = tf.one_hot(targets, self.one_hot_classes)
+            
             self.name = self.name or "acc"   	    # traditional categorical accuracy
             self.tensor = accuracy_op(predictions, targets)
         # Add a special name to that tensor, to be used by monitors
