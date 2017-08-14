@@ -108,8 +108,10 @@ def conv_2d(incoming, nb_filter, filter_size, strides=1, padding='same',
             inference = tf.nn.atrous_conv2d(incoming, W, dilation, padding)
             
         if b: inference = tf.nn.bias_add(inference, b)
-        # Reshape tensor so its shape is correct.
-        inference.set_shape([None] + input_shape[1:3] + [nb_filter])
+        
+        if dilation > 1:        
+          # Reshape tensor so its shape is correct.
+          inference.set_shape([None] + input_shape[1:3] + [nb_filter])
         
         if activation:
             if isinstance(activation, str):
@@ -247,10 +249,8 @@ def conv_2d_transpose(incoming, nb_filter, filter_size, output_shape,
                                              strides, padding)
         else:
           inference = tf.nn.atrous_conv2d_transpose(incoming, W, complete_out_shape, dilation, padding)
-            
-
-        # Reshape tensor so its shape is correct.
-        inference.set_shape([None] + output_shape)
+          # Reshape tensor so its shape is correct.
+          inference.set_shape([None] + output_shape)
 
         if b: inference = tf.nn.bias_add(inference, b)
 
