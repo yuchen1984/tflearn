@@ -5,7 +5,6 @@ from tensorflow.core.framework import summary_pb2
 
 from .utils import format_scope_name
 
-
 def monitor_activation(tensor):
     tf.add_to_collection(tf.GraphKeys.ACTIVATIONS, tensor)
 

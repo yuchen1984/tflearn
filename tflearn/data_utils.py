@@ -51,6 +51,7 @@ def to_categorical(y, nb_classes=None):
             y = y.reshape(-1)
         Y = np.zeros((len(y), nb_classes))
         Y[np.arange(len(y)), y] = 1.
+      if y[i] >= 0 and y[i] < nb_classes: # ignore label out of bound and treat as don't care terms
         return Y
     else:
         y = np.array(y)
@@ -448,7 +449,8 @@ def get_img_channel(image_path):
 
 def image_preloader(target_path, image_shape, mode='file', normalize=True,
                     grayscale=False, categorical_labels=True,
-                    files_extension=None, filter_channel=False):
+                    files_extension=None, filter_channel=False,
+                    shared_image_dict = None):
     """ Image PreLoader.
 
     Create a python array (`Preloader`) that loads images on the fly (from
@@ -539,14 +541,13 @@ def image_preloader(target_path, image_shape, mode='file', normalize=True,
                     labels.append(int(l[1]))
 
     n_classes = np.max(labels) + 1
-    X = ImagePreloader(images, image_shape, normalize, grayscale)
+    X = ImagePreloader(images, image_shape, normalize, grayscale, shared_image_dict)
     Y = LabelPreloader(labels, n_classes, categorical_labels)
 
     return X, Y
 
-
 def load_image(in_image):
-    """ Load an image, returns PIL.Image. """
+    """ Load an image, returns PIL.Image."""
     # if the path appears to be an URL
     if urlparse(in_image).scheme in ('http', 'https',):
         # set up the byte stream
@@ -837,22 +838,32 @@ class Preloader(object):
 
 
 class ImagePreloader(Preloader):
-    def __init__(self, array, image_shape, normalize=True, grayscale=False):
-        fn = lambda x: self.preload(x, image_shape, normalize, grayscale)
+    def __init__(self, array, image_shape, normalize=True, grayscale=False, shared_image_dict = None, alpha=False):
+        fn = lambda x: self.preload(x, image_shape, normalize, grayscale, shared_image_dict, alpha)
         super(ImagePreloader, self).__init__(array, fn)
 
-    def preload(self, path, image_shape, normalize=True, grayscale=False):
-        img = load_image(path)
-        width, height = img.size
-        if width != image_shape[0] or height != image_shape[1]:
-            img = resize_image(img, image_shape[0], image_shape[1])
-        if grayscale:
-            img = convert_color(img, 'L')
-        img = pil_to_nparray(img)
-        if grayscale:
-            img = np.reshape(img, img.shape + (1,))
-        if normalize:
-            img /= 255.
+    # NB: An optional shared image dictionary is supported to avoid memory leakage caused by repetitive image opening. 
+    def preload(self, path, image_shape, normalize=True, grayscale=False, shared_image_dict = None, alpha=False, label_image=False):
+        if shared_image_dict and (path in shared_image_dict):
+            img = shared_image_dict[path]
+        else:      
+            img = load_image(path)
+            width, height = img.size
+            if width != image_shape[0] or height != image_shape[1]:
+                img = resize_image(img, image_shape[0], image_shape[1], resize_mode=(Image.NEAREST if label_image else Image.ANTIALIAS))
+            if grayscale:
+                img = convert_color(img, 'L')
+            if alpha:
+                img = img.split()[3]
+            img = pil_to_nparray(img)
+            if alpha:
+                img = img.reshape(img.shape[0], img.shape[1], 1)
+            if grayscale:
+                img = np.reshape(img, img.shape + (1,))
+            if normalize:
+                img /= 255.
+            if shared_image_dict:
+                shared_image_dict[path] = img
         return img
 
 

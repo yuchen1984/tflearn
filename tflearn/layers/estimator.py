@@ -15,8 +15,10 @@ def regression(incoming, placeholder='default', optimizer='adam',
                loss='categorical_crossentropy', metric='default',
                learning_rate=0.001, dtype=tf.float32, batch_size=64,
                shuffle_batches=True, to_one_hot=False, n_classes=None,
+               output_shape=None,
                trainable_vars=None, restore=True, op_name=None, 
-               validation_monitors=None, validation_batch_size=None, name=None):
+               validation_monitors=None, validation_batch_size=None,
+               lr_multipliers = None, name=None):
     """ Regression.
 
     The regression layer is used in TFLearn to apply a regression (linear or
@@ -85,6 +87,7 @@ def regression(incoming, placeholder='default', optimizer='adam',
             shape [None].
         validation_batch_size: `int` or None. Specifies the batch
             size to be used for the validation data feed.
+        lr_multipliers: A dictionary or None. learning rate multipliers to each specified layers
         name: A name for this layer's placeholder scope.
 
     Attributes:
@@ -97,7 +100,7 @@ def regression(incoming, placeholder='default', optimizer='adam',
     if placeholder == 'default':
         pscope = "TargetsData" if not name else name
         with tf.name_scope(pscope):
-            p_shape = [None] if to_one_hot else input_shape
+            p_shape = output_shape if output_shape != None else ([None] if to_one_hot else input_shape)
             placeholder = tf.placeholder(shape=p_shape, dtype=dtype, name="Y")
     elif placeholder is None:
         placeholder = None
@@ -148,19 +151,22 @@ def regression(incoming, placeholder='default', optimizer='adam',
     if not isinstance(metric, tf.Tensor) and placeholder is None:
         metric = None
     if metric is not None:
+        placeholder_resized = placeholder
+        if output_shape != None:
+            placeholder_resized = tf.image.resize_nearest_neighbor(placeholder, tf.pack(input_shape[1:3]))
         # Default metric is accuracy
         if metric == 'default':
             metric = 'accuracy'
         if isinstance(metric, str):
             metric = metrics.get(metric)()
-            metric.build(incoming, placeholder, inputs)
+            metric.build(incoming, placeholder_resized, inputs)
             metric = metric.get_tensor()
         elif isinstance(metric, metrics.Metric):
-            metric.build(incoming, placeholder, inputs)
+            metric.build(incoming, placeholder_resized, inputs)
             metric = metric.get_tensor()
         elif hasattr(metric, '__call__'):
             try:
-                metric = metric(incoming, placeholder, inputs)
+                metric = metric(incoming, placeholder_resized, inputs)
             except Exception as e:
                 print(str(e))
                 print('Reminder: Custom metric function arguments must be '
@@ -202,6 +208,7 @@ def regression(incoming, placeholder='default', optimizer='adam',
                     step_tensor=step_tensor,
                     validation_monitors=validation_monitors,
                     validation_batch_size=validation_batch_size,
+                    lr_multipliers=lr_multipliers,
                     name=op_name)
 
     tf.add_to_collection(tf.GraphKeys.TRAIN_OPS, tr_op)

@@ -16,7 +16,7 @@ from ..layers.normalization import batch_normalization
 
 def conv_2d(incoming, nb_filter, filter_size, strides=1, padding='same',
             activation='linear', bias=True, weights_init='uniform_scaling',
-            bias_init='zeros', regularizer=None, weight_decay=0.001,
+            bias_init='zeros', regularizer=None, weight_decay=0.001, dilation=1,
             trainable=True, restore=True, reuse=False, scope=None,
             name="Conv2D"):
     """ Convolution 2D.
@@ -46,6 +46,7 @@ def conv_2d(incoming, nb_filter, filter_size, strides=1, padding='same',
         regularizer: `str` (name) or `Tensor`. Add a regularizer to this
             layer weights (see tflearn.regularizers). Default: None.
         weight_decay: `float`. Regularizer decay parameter. Default: 0.001.
+        dilation: `int`. If greater than one, applying atrous_conv layers.
         trainable: `bool`. If True, weights will be trainable.
         restore: `bool`. If True, this layer weights will be restored when
             loading a model.
@@ -101,9 +102,18 @@ def conv_2d(incoming, nb_filter, filter_size, strides=1, padding='same',
             # Track per layer variables
             tf.add_to_collection(tf.GraphKeys.LAYER_VARIABLES + '/' + name, b)
 
-        inference = tf.nn.conv2d(incoming, W, strides, padding)
+        if dilation <= 1:
+            inference = tf.nn.conv2d(incoming, W, strides, padding)
+        else:
+            inference = tf.nn.atrous_conv2d(incoming, W, dilation, padding)
+            
         if b is not None: inference = tf.nn.bias_add(inference, b)
 
+        
+        if dilation > 1:        
+          # Reshape tensor so its shape is correct.
+          inference.set_shape([None] + input_shape[1:3] + [nb_filter])
+        
         if activation:
             if isinstance(activation, str):
                 inference = activations.get(activation)(inference)
@@ -129,8 +139,8 @@ def conv_2d(incoming, nb_filter, filter_size, strides=1, padding='same',
 def conv_2d_transpose(incoming, nb_filter, filter_size, output_shape,
                       strides=1, padding='same', activation='linear',
                       bias=True, weights_init='uniform_scaling',
-                      bias_init='zeros', regularizer=None, weight_decay=0.001,
-                      trainable=True, restore=True, reuse=False, scope=None,
+                      bias_init='zeros', regularizer=None, weight_decay=0.001, dilation=1,
+                      trainable=True, restore=True, reuse=False, scope=None, 
                       name="Conv2DTranspose"):
 
     """ Convolution 2D Transpose.
@@ -168,6 +178,7 @@ def conv_2d_transpose(incoming, nb_filter, filter_size, output_shape,
         regularizer: `str` (name) or `Tensor`. Add a regularizer to this
             layer weights (see tflearn.regularizers). Default: None.
         weight_decay: `float`. Regularizer decay parameter. Default: 0.001.
+        dilation: `int`. If greater than one, applying atrous_conv layers.
         trainable: `bool`. If True, weights will be trainable.
         restore: `bool`. If True, this layer weights will be restored when
             loading a model.
@@ -233,8 +244,11 @@ def conv_2d_transpose(incoming, nb_filter, filter_size, output_shape,
                             + ", only a length of 2 or 3 is supported.")
         complete_out_shape = tf.concat([batch_size, tf.constant(output_shape)], 0)
 
-        inference = tf.nn.conv2d_transpose(incoming, W, complete_out_shape,
-                                           strides, padding)
+        if dilation <= 1:
+          inference = tf.nn.conv2d_transpose(incoming, W, complete_out_shape,
+                                             strides, padding)
+        else:
+          inference = tf.nn.atrous_conv2d_transpose(incoming, W, complete_out_shape, dilation, padding)
 
         # Reshape tensor so its shape is correct.
         inference.set_shape([None] + output_shape)
