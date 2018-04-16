@@ -50,8 +50,9 @@ def to_categorical(y, nb_classes=None):
         if len(y.shape) > 1:
             y = y.reshape(-1)
         Y = np.zeros((len(y), nb_classes))
-        Y[np.arange(len(y)), y] = 1.
-      if y[i] >= 0 and y[i] < nb_classes: # ignore label out of bound and treat as don't care terms
+        for i in range(len(y)):
+          if y[i] >= 0 and y[i] < nb_classes: # ignore label out of bound and treat as don't care terms
+            Y[i, y[i]] = 1.
         return Y
     else:
         y = np.array(y)

@@ -153,7 +153,7 @@ def regression(incoming, placeholder='default', optimizer='adam',
     if metric is not None:
         placeholder_resized = placeholder
         if output_shape != None:
-            placeholder_resized = tf.image.resize_nearest_neighbor(placeholder, tf.pack(input_shape[1:3]))
+            placeholder_resized = tf.image.resize_nearest_neighbor(placeholder, input_shape[1:3])
         # Default metric is accuracy
         if metric == 'default':
             metric = 'accuracy'
