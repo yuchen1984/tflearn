@@ -704,21 +704,26 @@ class TrainOp(object):
             self.grad = list(zip(self.grad, self.train_vars))
             
             # Apply layer-wise learning rate multiplier if any.
-            if self.lr_multipliers:
-              grads_and_vars_mult = []
-              for g, var in self.grad:
-                if var.op.name in self.lr_multipliers and g is not None:
-                  #print var.name
-                  g *= self.lr_multipliers[var.op.name]
-                grads_and_vars_mult.append((g, var))
-                if var and g is not None:
-                  tf.histogram_summary('variables/' + var.op.name, var)
-                  tf.histogram_summary('gradients/' + var.op.name, g)
-            
-            self.apply_grad = self.optimizer.apply_gradients(
-                    grads_and_vars=self.grad,
-                    global_step=self.training_steps,
-                    name="apply_grad_op_" + str(i))
+            if self.lr_multipliers is not None:
+                grads_and_vars_mult = []
+                for g, var in self.grad:
+                    if var.op.name in self.lr_multipliers and g is not None:
+                        #print(var.name)
+                        g *= self.lr_multipliers[var.op.name]
+                    grads_and_vars_mult.append((g, var))
+                    if var and g is not None:
+                        tf.summary.histogram('variables/' + var.op.name, var)
+                        tf.summary.histogram('gradients/' + var.op.name, g)
+                  
+                self.apply_grad = self.optimizer.apply_gradients(
+                        grads_and_vars=grads_and_vars_mult,
+                        global_step=self.training_steps,
+                        name="apply_grad_op_" + str(i))
+            else:
+                self.apply_grad = self.optimizer.apply_gradients(
+                        grads_and_vars=self.grad,
+                        global_step=self.training_steps,
+                        name="apply_grad_op_" + str(i))
 
             # Create other useful summary (weights, grads, activations...)
             # according to 'tensorboard_verbose' level.

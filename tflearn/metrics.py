@@ -307,11 +307,11 @@ def multilabel_accuracy_op(predictions, targets, k, binary):
         # We need to create full indices like [[0, 0], [0, 1], [1, 2], [1, 1]]
         index_range = tf.expand_dims(tf.range(0, tf.shape(top_pred_indices)[0]), 1)
         index_range_repeated = tf.tile(index_range, [1, k])  # will be [[0, 0], [1, 1]]
-        top_pred_indices_full = tf.concat(2, [tf.expand_dims(index_range_repeated, 2), tf.expand_dims(top_pred_indices, 2)]) 
+        top_pred_indices_full = tf.concat(values=[tf.expand_dims(index_range_repeated, 2), tf.expand_dims(top_pred_indices, 2)], axis=2) 
         top_pred_indices_full = tf.reshape(top_pred_indices_full, [-1, 2])
 
         predictions_reg = tf.sparse_to_dense(top_pred_indices_full, tf.shape(predictions), sparse_values=1.0, default_value=0.0, validate_indices=False)
-        prod = tf.mul(predictions_reg, targets)
+        prod = tf.multiply(predictions_reg, targets)
         prod = tf.scalar_mul(1.0 / float(k), prod)
         correct_pred = tf.reduce_sum(prod, 1)
         acc = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
