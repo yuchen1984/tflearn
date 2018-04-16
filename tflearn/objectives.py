@@ -138,7 +138,7 @@ def columnwise_weighted_full_categorical_crossentropy(y_pred, y_true, column_wei
 
     """
     with tf.name_scope("SuperWeightedFullCrossentropy"):
-        column_weights_broadcast = tf.tile(column_weights, tf.pack([tf.shape(y_pred)[0], 1]))
+        column_weights_broadcast = tf.tile(column_weights, multiples=[tf.shape(y_pred)[0], 1])
         y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
                                   tf.cast(1.-_EPSILON, dtype=_FLOATX))
         y_pred_neg = tf.clip_by_value(1.0 - y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
@@ -166,7 +166,7 @@ def super_weighted_full_categorical_crossentropy(y_pred, y_true, element_weight,
 
     """
     with tf.name_scope("SuperWeightedFullCrossentropy"):
-        element_weight_broadcast = tf.tile(element_weight, tf.pack([tf.shape(y_pred)[0], 1]))
+        element_weight_broadcast = tf.tile(element_weight, multiples=[tf.shape(y_pred)[0], 1])
         # manual computation of crossentropy
         y_pred = tf.clip_by_value(y_pred, tf.cast(_EPSILON, dtype=_FLOATX),
                                   tf.cast(1.-_EPSILON, dtype=_FLOATX))
