@@ -740,8 +740,8 @@ class TrainOp(object):
 
         if dprep_dict:
             for k in dprep_dict:
-                assert feed_dict[k] is not None, \
-                    "Unknown DataPreprocessing dict key!"
+                #assert feed_dict[k] is not None, \
+                #    "Unknown DataPreprocessing dict key!"
                 dprep_dict[k].initialize(feed_dict[k], self.session)
         self.train_dflow = data_flow.FeedDictFlow(feed_dict, coord,
                                                   continuous=True,
