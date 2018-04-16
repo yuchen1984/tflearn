@@ -7,6 +7,15 @@ import numpy as np
 from PIL import Image
 import pickle
 import csv
+import warnings
+import tensorflow as tf
+try: #py3
+    from urllib.parse import urlparse
+    from urllib import request
+except: #py2
+    from urlparse import urlparse
+    from six.moves.urllib import request
+from io import BytesIO
 
 """
 Preprocessing provides some useful functions to preprocess data before
@@ -24,7 +33,7 @@ _EPSILON = 1e-8
 # =======================
 
 
-def to_categorical(y, nb_classes):
+def to_categorical(y, nb_classes=None):
     """ to_categorical.
 
     Convert class vector (integers from 0 to nb_classes)
@@ -32,16 +41,20 @@ def to_categorical(y, nb_classes):
 
     Arguments:
         y: `array`. Class vector to convert.
-        nb_classes: `int`. Total number of classes.
-
+        nb_classes: `int`. The total number of classes.
     """
-    y = np.asarray(y, dtype='int32')
-    if not nb_classes:
-        nb_classes = np.max(y)+1
-    Y = np.zeros((len(y), nb_classes))
-    for i in range(len(y)):
-        Y[i, y[i]] = 1.
-    return Y
+    if nb_classes:
+        y = np.asarray(y, dtype='int32')
+        if len(y.shape) > 2:
+            print("Warning: data array ndim > 2")
+        if len(y.shape) > 1:
+            y = y.reshape(-1)
+        Y = np.zeros((len(y), nb_classes))
+        Y[np.arange(len(y)), y] = 1.
+        return Y
+    else:
+        y = np.array(y)
+        return (y[:, None] == np.unique(y)).astype(np.float32)
 
 
 # =====================
@@ -218,7 +231,7 @@ class VocabularyProcessor(_VocabularyProcessor):
     def fit_transform(self, raw_documents, unused_y=None):
         """ fit_transform.
 
-        Learn the vocabulary dictionary and return indexies of words.
+        Learn the vocabulary dictionary and return indices of words.
 
         Arguments:
             raw_documents: An iterable which yield either str or unicode.
@@ -384,8 +397,8 @@ def build_hdf5_image_dataset(target_path, image_shape, output_path='dataset.h5',
 
     n_classes = np.max(labels) + 1
 
-    d_imgshape = (len(images), image_shape[0], image_shape[1], 3) \
-        if not grayscale else (len(images), image_shape[0], image_shape[1])
+    d_imgshape = (len(images), image_shape[1], image_shape[0], 3) \
+        if not grayscale else (len(images), image_shape[1], image_shape[0])
     d_labelshape = (len(images), n_classes) \
         if categorical_labels else (len(images), )
     x_chunks = None
@@ -405,7 +418,7 @@ def build_hdf5_image_dataset(target_path, image_shape, output_path='dataset.h5',
             img = resize_image(img, image_shape[0], image_shape[1])
         if grayscale:
             img = convert_color(img, 'L')
-        elif img.mode == 'L':
+        elif img.mode == 'L' or img.mode == 'RGBA':
             img = convert_color(img, 'RGB')
 
         img = pil_to_nparray(img)
@@ -416,6 +429,7 @@ def build_hdf5_image_dataset(target_path, image_shape, output_path='dataset.h5',
             dataset['Y'][i] = to_categorical([labels[i]], n_classes)[0]
         else:
             dataset['Y'][i] = labels[i]
+
 
 def get_img_channel(image_path):
     """
@@ -430,6 +444,7 @@ def get_img_channel(image_path):
     except:
         channel = 1
     return channel
+
 
 def image_preloader(target_path, image_shape, mode='file', normalize=True,
                     grayscale=False, categorical_labels=True,
@@ -532,7 +547,15 @@ def image_preloader(target_path, image_shape, mode='file', normalize=True,
 
 def load_image(in_image):
     """ Load an image, returns PIL.Image. """
-    img = Image.open(in_image)
+    # if the path appears to be an URL
+    if urlparse(in_image).scheme in ('http', 'https',):
+        # set up the byte stream
+        img_stream = BytesIO(request.urlopen(in_image).read())
+        # and read in as PIL image
+        img = Image.open(img_stream)
+    else:
+        # else use it as local file path
+        img = Image.open(in_image)
     return img
 
 
@@ -826,6 +849,8 @@ class ImagePreloader(Preloader):
         if grayscale:
             img = convert_color(img, 'L')
         img = pil_to_nparray(img)
+        if grayscale:
+            img = np.reshape(img, img.shape + (1,))
         if normalize:
             img /= 255.
         return img
@@ -844,6 +869,43 @@ class LabelPreloader(Preloader):
         else:
             return label
 
+
+def is_array(X):
+    return type(X) in [np.array, np.ndarray, list]
+
+
+def get_num_features(X):
+    if isinstance(X, tf.Tensor):
+        return X.get_shape().as_list()[-1]
+    elif is_array(X):
+        return list(np.shape(X))[-1]
+    else:
+        raise ValueError("Unknown data type.")
+
+
+def get_num_classes(Y):
+    if is_array(Y):
+        # Assume max integer is number of classes
+        return np.max(Y) + 1
+    elif isinstance(Y, tf.Tensor):
+        return ValueError("Cannot automatically retrieve number of classes "
+                          "from a Tensor. Please fill 'num_classes' argument.")
+    else:
+        raise ValueError("Unknown data type.")
+
+
+def get_num_sample(X):
+    if is_array(X):
+        return np.shape(X)[0]
+    elif isinstance(X, tf.Tensor):
+        return X.get_shape()[0]
+    else:
+        raise ValueError("Unknown data type.")
+
+
+# ==================
+#   STATS UTILS
+# ==================
 
 def get_max(X):
     return np.max(X)
